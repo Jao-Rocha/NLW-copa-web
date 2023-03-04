@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+//tabelas do banco a baixo
+model Pool {
+  id       String   @id @default(cuid())
+  title    String
+  code     String   @unique
+  createAt DateTime @default(now()) //data de criação
+
+  ownerId String?
+
+  participants Participant[]
+  owner        User?         @relation(fields: [ownerId], references: [id])
+}
+
+//participantes de determinado jogo
+model Participant {
+  id     String @id @default(cuid())
+  //id criado pelo ralacionamento
+  userId String
+  poolId String
+
+  guesses Guess[]
+  user    User    @relation(fields: [userId], references: [id])
+  pool    Pool    @relation(fields: [poolId], references: [id])
+
+  @@unique([userId, poolId])
+}
+
+//usuário
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  googleId  String?  @unique
+  avatarUrl String? //indica que o campo pode estar vazio
+  createAt  DateTime @default(now())
+
+  participatingAt Participant[]
+  ownPools        Pool[]
+}
+
+//jogos criados
+model Game {
+  id   String   @id @default(cuid())
+  date DateTime
+
+  firstTeamCountryCode  String
+  secondTeamCountryCode String
+
+  //realacionamento inverso(não gera coluna no banco)
+  guesses Guess[]
+}
+
+//palpites
+model Guess {
+  id       String   @id @default(cuid())
+  createAt DateTime @default(now())
+
+  firstTeamPoints  Int
+  secondTeamPoints Int
+  //ids criados pelo relacionamento
+  gameId           String
+  participantId    String
+
+  //relacionamento(não gera coluna no banco)
+  participant Participant @relation(fields: [participantId], references: [id])
+  game        Game        @relation(fields: [gameId], references: [id])
+
+  @@unique([participantId, gameId])
+}
